@@ -1,3 +1,4 @@
 .env
 .envrc
 raw_data/*
+.streamlit/*
