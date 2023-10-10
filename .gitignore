@@ -1,5 +1,5 @@
 .env
 .envrc
 raw_data/*
-# .streamlit/*
-# .streamlit/secrets.toml
+.streamlit/*
+.streamlit/secrets.toml
