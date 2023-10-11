@@ -1,4 +1,8 @@
 
+
+
+
+
 # map prompt
 def map_prompt(interests):
     interests = ", ".join(interests)
@@ -115,17 +119,149 @@ def no_results_prompt(user_travel_details, new_user_travel_details):
     return conversation_stage
 
 # All the details are gathered and we're presenting a solution, list of available itineraries
-def solution_presentation_prompt(found_itineraries, df):
-    summary = ""
-    for itinerary in found_itineraries:
-        filtered_df = df[df['tour_name'] == itinerary]
-        summary += f'Itinerary: {filtered_df["tour_name"].values[0]}\n'
-        summary += f'Tour description: {filtered_df["tour_description"].values[0]}\n'
-        summary += f'Link: {filtered_df["url"].values[0]}\n\n'
+# def solution_presentation_prompt(found_itineraries, df):
+#     summary = ""
+#     for itinerary in found_itineraries:
+#         filtered_df = df[df['tour_name'] == itinerary]
+#         summary += f'Itinerary: {filtered_df["tour_name"].values[0]}\n'
+#         summary += f'Tour description: {filtered_df["tour_description"].values[0]}\n'
+#         summary += f'Link: {filtered_df["url"].values[0]}\n\n'
 
-    conversation_stage = f"""Thank the user for providing the details.
-        Based on all the users needs here is the list of itineraries and a summary that fit their needs:\n{summary}
-        Present the itinerary or itineraries to the user.
-        """
-    # text summarisation needed for the above
+#     conversation_stage = f"""Thank the user for providing the details.
+#         Based on all the users needs here is the list of itineraries and a summary that fit their needs:\n{summary}
+#         Present the itinerary or itineraries to the user.
+#         """
+#     # text summarisation needed for the above
+#     return conversation_stage
+
+def solution_presentation_prompt(found_itineraries, interests):
+    # Map
+    map_chain = LLMChain(llm=llm, prompt=map_prompt(interests))
+
+    # Run chain
+    reduce_chain = LLMChain(llm=llm, prompt=first_reduce_prompt())
+
+    # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
+    combine_documents_chain = StuffDocumentsChain(
+        llm_chain=reduce_chain, document_variable_name="doc_summaries"
+    )
+
+    # Combines and iteravely reduces the mapped documents
+    reduce_documents_chain = ReduceDocumentsChain(
+        # This is final chain that is called.
+        combine_documents_chain=combine_documents_chain,
+        # If documents exceed context for `StuffDocumentsChain`
+        collapse_documents_chain=combine_documents_chain,
+        # The maximum number of tokens to group documents into.
+        token_max=4000,
+    )
+
+    # Combining documents by mapping a chain over them, then combining results
+    map_reduce_chain = MapReduceDocumentsChain(
+        # Map chain
+        llm_chain=map_chain,
+        # Reduce chain
+        reduce_documents_chain=reduce_documents_chain, #_documents
+        # The variable name in the llm_chain to put the documents in
+        document_variable_name="docs",
+        # Return the results of the map steps in the output
+        return_intermediate_steps=False,
+    )
+
+    # list initial itinerary summaries
+    text_vars = []
+
+    for itinerary in found_itineraries[:]:
+        itinerary_path = f"raw_data/itinerary_text/{itinerary}.txt"
+        loader = TextLoader(itinerary_path)
+        docs = loader.load()
+        itinerary_summary = map_reduce_chain.run(docs)
+        itinerary_document = Document(page_content=itinerary_summary)
+        text_vars.append(itinerary_document)
+
+    # Reduce
+    # final Reduce chain
+    reduce_chain = LLMChain(llm=llm, prompt=second_reduce_prompt(interests))
+
+    # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
+    combine_documents_chain = StuffDocumentsChain(
+        llm_chain=reduce_chain, document_variable_name="doc_summaries"
+    )
+
+    # Combines and iteravely reduces the mapped documents
+    reduce_documents_chain = ReduceDocumentsChain(
+        # This is final chain that is called.
+        combine_documents_chain=combine_documents_chain,
+        # If documents exceed context for `StuffDocumentsChain`
+        collapse_documents_chain=combine_documents_chain,
+        # The maximum number of tokens to group documents into.
+        token_max=4000,
+    )
+
+
+    reduced = reduce_documents_chain.run(text_vars)
+
+    conversation_stage = f"""You are at the solution presentation stage of you conversation.
+    You have gathered the basic information you need from the client along with their interests.
+    Using this information you have found and ranked the itineraries that best fit the users needs.
+    Present the solution, found between the two sets of == below, to the client.
+    ==
+    {reduced}
+    ==
+    """
+
     return conversation_stage
+
+
+
+def customize_prompt(conversation_history, conversation_stage):
+
+    SALES_AGENT_TOOLS_PROMPT = """
+    Never forget your name is Francis. You work as a Travel Agent.
+    You work at company named Francis. Francis's business is the following: Francis is a context aware AI travel agent that works on finding users their dream group tour holiday.
+    You are contacting a potential prospect in order to find them a group toup holiday.
+    Your means of contacting the prospect is live chat.
+
+    Keep your responses in short length to retain the user's attention. Never produce lists, just answers.
+
+    Always think about the following conversation stage you are at before answering:
+
+    - {conversation_stage}
+
+    You MUST respond according to the previous conversation history and the stage of the conversation you are at.
+    If you get asked about an itinerary use the tools available to you, do not make up an answer. If you do not know the answer tell the user.
+    Only generate one response at a time and act as Francis only!
+    Do not add Francis: to your output.
+
+    Previous conversation history:
+    {conversation_history}
+
+    Begin!
+    """
+
+    conversation_history = "\n".join(conversation_history)
+
+
+    from langchain import LLMChain, PromptTemplate
+    prompt = PromptTemplate(
+                template=SALES_AGENT_TOOLS_PROMPT,
+                input_variables=[
+                    "conversation_stage",
+                    "conversation_history"
+                ],
+            )
+
+    SALES_AGENT_TOOLS_PROMPT = prompt.format(conversation_stage=conversation_stage,
+                                     conversation_history=conversation_history)
+
+    system_message = SystemMessage(
+            content=(SALES_AGENT_TOOLS_PROMPT
+            )
+    )
+
+    prompt = OpenAIFunctionsAgent.create_prompt(
+            system_message=system_message
+    )
+
+    return prompt
+# print(prompt.messages[0].content)

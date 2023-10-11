@@ -2,8 +2,11 @@ import openai
 import streamlit as st
 import streamlit_chat
 
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+from travel_chatbot.agents import run_francis
+from travel_chatbot.tools import get_tools
+from travel_chatbot.basemodels import TravelDetails
 
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 def move_focus():
     # inspect the html to determine which control to specify to receive focus (e.g. text or textarea).
@@ -44,25 +47,30 @@ def stick_it_good():
 def userid_change():
     st.session_state.userid = st.session_state.userid_input
 
+def update_test():
+    st.session_state.interest_asked.append(1)
 
-def complete_messages(nbegin,nend,stream=True):
+
+def complete_messages(nbegin,nend):
     messages = [
                 {"role": m["role"], "content": m["content"]}
                 for m in st.session_state.messages
             ]
+
+    # conversation history needed for the model
+    conversation_history = []
+
+    for message in st.session_state.messages:
+        if message['role'] == 'user':
+            # Append the modified user message to conversation_history
+            conversation_history.append('User: ' + message['content'])
+        elif message['role'] == 'assistant':
+            # Append the modified assistant message to conversation_history
+            conversation_history.append('Francis: ' + message['content'])
+
+
     with st.spinner(f"Waiting for {nbegin}/{nend} responses from ChatGPT."):
-        if stream:
-            responses = []
-            # Looping over openai's responses. async style.
-            for response in openai.ChatCompletion.create(
-                model = st.session_state["openai_model"],
-                messages = messages,
-                stream = True):
-                    partial_response_content = response.choices[0].delta.get("content","")
-                    responses.append(partial_response_content)
-            response_content = "".join(responses)
-        else:
-            response = openai.ChatCompletion.create(
+        response = openai.ChatCompletion.create(
                 model=st.session_state["openai_model"],
                 messages=[
                     {"role": m["role"], "content": m["content"]}
@@ -70,7 +78,7 @@ def complete_messages(nbegin,nend,stream=True):
                 ],
                 stream=False,
             )
-            response_content = response.choices[0]['message'].get("content","")
+        response_content = response.choices[0]['message'].get("content","")
     return response_content
 
 
@@ -79,16 +87,44 @@ def main():
     if "openai_model" not in st.session_state:
         st.session_state["openai_model"] = "gpt-3.5-turbo"
 
+    # tools
+    if "tools" not in st.session_state:
+        st.session_state["tools"] = get_tools()
+
+    # user_travel_details
+    if "user_travel_details" not in st.session_state:
+        st.session_state["user_travel_details"] = TravelDetails(introduction=False,
+                                                                    qualification="",
+                                                                    country="",
+                                                                    departing_after=None,
+                                                                    departing_before=None,
+                                                                    max_budget=None,
+                                                                    max_duration=None,
+                                                                    min_duration=None,
+                                                                    )
+
+    # list_of_interests
+    if "list_of_interests" not in st.session_state:
+        st.session_state.list_of_interests = []
+
+    # interest_asked
+    if "interest_asked" not in st.session_state:
+        st.session_state.interest_asked = []
+
+    # asked_for
+    if "asked_for" not in st.session_state:
+        st.session_state.asked_for = []
+
     # create message variable a session state
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
     with st.container():
-        st.title("Streamlit ChatGPT Bot")
+        st.title("Francis TravelGPT Bot")
         stick_it_good()
 
     # create sidebar for intro text and the open to clear chat history
-    st.sidebar.write('Some sort of text')
+    st.sidebar.write('Welcome to my travl chat bot')
     if st.sidebar.button("Clear Conversation", key='clear_chat_button'):
         st.session_state.messages = []
         move_focus()
@@ -110,7 +146,10 @@ def main():
             assistant_content = complete_messages(0,1)
             streamlit_chat.message(assistant_content, key='chat_messages_assistant_'+str(nkey))
             st.session_state.messages.append({"role": "assistant", "content": assistant_content})
-            #len(st.session_state.messages)
+            update_test()
+            print(st.session_state.interest_asked)
+            print(st.session_state.messages)
+
 
 
 if __name__ == '__main__':
