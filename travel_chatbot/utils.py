@@ -1,4 +1,6 @@
-
+from basemodels import TravelDetails
+from dicts import ask_for_dict
+import pandas as pd
 
 #check what is empty
 # ask for country and then for a budget

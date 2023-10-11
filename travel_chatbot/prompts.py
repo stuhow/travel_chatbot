@@ -1,7 +1,14 @@
+from langchain.chains.llm import LLMChain
+from langchain.prompts import PromptTemplate
+from langchain.chains.combine_documents.stuff import StuffDocumentsChain
+from langchain.document_loaders import TextLoader
+from langchain.chains import ReduceDocumentsChain, MapReduceDocumentsChain
+from langchain.docstore.document import Document
+from langchain.agents import OpenAIFunctionsAgent
+from langchain.schema.messages import SystemMessage
 
 
-
-
+llm = "to be added"
 
 # map prompt
 def map_prompt(interests):
@@ -88,16 +95,16 @@ def info_gathering_prompt(ask_for, found_itineraries, filtered_df):
 def interest_gathering_prompt(found_itineraries, new_user_travel_details, list_of_interests):
     if len(list_of_interests) == 0:
         PROMPT_TEMPLATE = f"""You have gathered all the basic information you need from the user:
-        - destination: {user_travel_details.dict()['country']}
+        - destination: {new_user_travel_details.dict()['country']}
         - budget
         - when they're looking to travel
         - How long they want to travel for
         You now need to learn more about the users interests to recommend to most suitable trip.
-        Ask questions around why they want to visit {user_travel_details.dict()['country']}
+        Ask questions around why they want to visit {new_user_travel_details.dict()['country']}
         """
     else:
         PROMPT_TEMPLATE = f"""You have gathered all the basic information you need from the user:
-        - destination: {user_travel_details.dict()['country']}
+        - destination: {new_user_travel_details.dict()['country']}
         - budget
         - when they're looking to travel
         - How long they want to travel for
@@ -110,7 +117,7 @@ def interest_gathering_prompt(found_itineraries, new_user_travel_details, list_o
 
 # still in the info gathering stage but there are no available itineraries based on preferences
 def no_results_prompt(user_travel_details, new_user_travel_details):
-    old_keys = new_user_travel_details.dict().keys()
+    old_keys = user_travel_details.dict().keys()
     new_keys = new_user_travel_details.dict().keys()
     last_question = [x for x in new_keys if x not in old_keys]
     conversation_stage = f"""
