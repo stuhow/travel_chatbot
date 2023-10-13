@@ -1,21 +1,21 @@
 import pandas as pd
-from basemodels import TravelDetails
+from langchain.chat_models import ChatOpenAI
+from travel_chatbot.basemodels import TravelDetails, UserInterests
 from langchain.chains import create_tagging_chain_pydantic
-from prompts import (no_results_prompt,
+from travel_chatbot.prompts import (no_results_prompt,
                     interest_gathering_prompt,
                     introduction_prompt,
                     info_gathering_prompt,
                     solution_presentation_prompt,
                     qualifiaction_prompt)
-from utils import (add_non_empty_details,
+from travel_chatbot.utils import (add_non_empty_details,
                    check_what_is_empty,
                    get_filtered_df)
 
-llm = "to be added"
+llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
 
 def check_conversation_stage(conversation_history_list,
                              user_travel_details,
-                             user_interests,
                              list_of_interests,
                              interest_asked,
                              asked_for):
@@ -37,7 +37,7 @@ def check_conversation_stage(conversation_history_list,
     ask_for = check_what_is_empty(new_user_travel_details)
 
     # extract intrests chain
-    chain = create_tagging_chain_pydantic(user_interests, llm)
+    chain = create_tagging_chain_pydantic(UserInterests, llm)
     interest = chain.run(conversation_history_list[-1])
     if interest.dict()['interest'] != None:
         list_of_interests.append(interest.dict()['interest'])

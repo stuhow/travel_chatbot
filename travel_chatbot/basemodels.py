@@ -1,7 +1,7 @@
 from typing import Optional
 from pydantic import BaseModel, Field
 
-class user_interests(BaseModel):
+class UserInterests(BaseModel):
     interest: Optional[str] = Field(
         None,
         description="Any experiances, interests, places or activities the user has expressed an interest in. Leave blank if none are mentioned",
@@ -14,7 +14,7 @@ class TravelDetails(BaseModel):
         description="Has francis introducted himself and asked if the user is interested in a group tour.",
     )
     qualification: Optional[str] = Field(
-        ...,
+        None,
         description="Did the user confirm they are looking for a group tour or answer positivley when asked. If the user asks about a trip assume the answer is yes",
         enum=["Yes", "No", "Unsure"]
     )

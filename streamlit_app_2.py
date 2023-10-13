@@ -5,6 +5,7 @@ import streamlit_chat
 from travel_chatbot.agents import run_francis
 from travel_chatbot.tools import get_tools
 from travel_chatbot.basemodels import TravelDetails
+from travel_chatbot.utils import conversation_history
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
@@ -57,17 +58,18 @@ def complete_messages(nbegin,nend):
                 for m in st.session_state.messages
             ]
 
-    # conversation history needed for the model
-    conversation_history = []
+    # # conversation history needed for the model
+    # conversation_history = []
 
-    for message in st.session_state.messages:
-        if message['role'] == 'user':
-            # Append the modified user message to conversation_history
-            conversation_history.append('User: ' + message['content'])
-        elif message['role'] == 'assistant':
-            # Append the modified assistant message to conversation_history
-            conversation_history.append('Francis: ' + message['content'])
+    # for message in st.session_state.messages:
+    #     if message['role'] == 'user':
+    #         # Append the modified user message to conversation_history
+    #         conversation_history.append('User: ' + message['content'])
+    #     elif message['role'] == 'assistant':
+    #         # Append the modified assistant message to conversation_history
+    #         conversation_history.append('Francis: ' + message['content'])
 
+    # print(conversation_history)
 
     with st.spinner(f"Waiting for {nbegin}/{nend} responses from ChatGPT."):
         response = openai.ChatCompletion.create(
@@ -129,7 +131,7 @@ def main():
         st.session_state.messages = []
         move_focus()
 
-    streamlit_chat.message("The first prompt from the agent once it has been seeded",key='intro_message_1')
+
 
     # loop through the existing messages to display them
     for i,message in enumerate(st.session_state.messages):
@@ -139,17 +141,34 @@ def main():
         else:
             streamlit_chat.message(message["content"], is_user=False, key='chat_messages_assistant_'+str(nkey))
 
+    # first message from francis to iniciate conversation
+    if len(st.session_state.messages) == 0:
+        nkey = int(len(st.session_state.messages)/2)
+        opening_content = "Hello, this is Francis from Francis Travel. Can i help you find a group tour today?"
+        streamlit_chat.message(opening_content,key='chat_messages_user_'+str(nkey))
+        st.session_state.messages.append({"role": "assistant", "content": opening_content})
+
+    # ongoing conversation
     if user_content := st.chat_input("Type your question here."): # using streamlit's st.chat_input because it stays put at bottom, chat.openai.com style.
-            nkey = int(len(st.session_state.messages)/2)
+            nkey = int(len(st.session_state.messages)/2) + 1
             streamlit_chat.message(user_content, is_user=True, key='chat_messages_user_'+str(nkey))
             st.session_state.messages.append({"role": "user", "content": user_content})
-            assistant_content = complete_messages(0,1)
+            # assistant_content = complete_messages(0,1)
+            conversation = conversation_history(st.session_state.messages)
+
+            with st.spinner(f"Thinking..."):
+                assistant_content, user_details = run_francis(user_content,
+                                                        conversation,
+                                                        st.session_state["user_travel_details"],
+                                                        st.session_state.list_of_interests,
+                                                        st.session_state.asked_for,
+                                                        st.session_state["tools"],
+                                                        st.session_state.asked_for)
+
+                print(user_details)
+
             streamlit_chat.message(assistant_content, key='chat_messages_assistant_'+str(nkey))
             st.session_state.messages.append({"role": "assistant", "content": assistant_content})
-            update_test()
-            print(st.session_state.interest_asked)
-            print(st.session_state.messages)
-
 
 
 if __name__ == '__main__':

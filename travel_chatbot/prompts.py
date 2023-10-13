@@ -6,9 +6,9 @@ from langchain.chains import ReduceDocumentsChain, MapReduceDocumentsChain
 from langchain.docstore.document import Document
 from langchain.agents import OpenAIFunctionsAgent
 from langchain.schema.messages import SystemMessage
+from langchain.chat_models import ChatOpenAI
 
-
-llm = "to be added"
+llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
 
 # map prompt
 def map_prompt(interests):

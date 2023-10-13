@@ -1,5 +1,5 @@
-from basemodels import TravelDetails
-from dicts import ask_for_dict
+from travel_chatbot.basemodels import TravelDetails
+from travel_chatbot.dicts import ask_for_dict
 import pandas as pd
 
 #check what is empty
@@ -84,3 +84,17 @@ def prompt_amendments(ask_for, filtered_df, found_itineraries):
          print('The question is about the duration')
     if ask_for[0] == 'what country are you looking to travel to?':
          print('The question is about where they want to travel to')
+
+
+def conversation_history(messages):
+    # conversation history needed for the model
+    conversation_history = []
+
+    for message in messages:
+        if message['role'] == 'user':
+            # Append the modified user message to conversation_history
+            conversation_history.append('User: ' + message['content'])
+        elif message['role'] == 'assistant':
+            # Append the modified assistant message to conversation_history
+            conversation_history.append('Francis: ' + message['content'])
+    return conversation_history
