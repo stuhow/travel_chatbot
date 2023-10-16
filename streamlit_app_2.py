@@ -125,13 +125,6 @@ def main():
         st.title("Francis TravelGPT Bot")
         stick_it_good()
 
-    # create sidebar for intro text and the open to clear chat history
-    st.sidebar.write('Welcome to my travl chat bot')
-    if st.sidebar.button("Clear Conversation", key='clear_chat_button'):
-        st.session_state.messages = []
-        move_focus()
-
-
 
     # loop through the existing messages to display them
     for i,message in enumerate(st.session_state.messages):
@@ -165,11 +158,22 @@ def main():
                                                         st.session_state["tools"],
                                                         st.session_state.asked_for)
 
-                print(user_details)
+            st.session_state["user_travel_details"] = user_details
 
             streamlit_chat.message(assistant_content, key='chat_messages_assistant_'+str(nkey))
             st.session_state.messages.append({"role": "assistant", "content": assistant_content})
 
+    # create sidebar for intro text and the open to clear chat history
+    st.sidebar.write('Welcome to my travl chat bot')
+
+    st.sidebar.write(st.session_state["user_travel_details"].dict())
+    st.sidebar.write(st.session_state.list_of_interests)
+    st.sidebar.write(st.session_state.interest_asked)
+    st.sidebar.write(st.session_state.asked_for)
+
+    if st.sidebar.button("Clear Conversation", key='clear_chat_button'):
+        st.session_state.messages = []
+        move_focus()
 
 if __name__ == '__main__':
     main()

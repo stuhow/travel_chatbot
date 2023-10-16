@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 class UserInterests(BaseModel):
     interest: Optional[str] = Field(
         None,
-        description="Any experiances, interests, places or activities the user has expressed an interest in. Leave blank if none are mentioned",
+        description="Any experiances, interests, places or activities the user has expressed an interest in. This does not include dates, countries or tour types. Leave blank if none are mentioned",
     )
 
 
@@ -26,11 +26,11 @@ class TravelDetails(BaseModel):
 
     departing_after: Optional[str] = Field(
         "",
-        description="This is the first date from which the user can depart. If the user gives a month assume this is the first of the month. If not year if given return 2023. In the format '%Y-%m-%d'",
+        description="This is the first date from which the user can depart. If the user gives a month assume this is the first of the month. If year is not given assume 2024. In the format '%Y-%m-%d'",
     )
     departing_before: Optional[str] = Field(
         "",
-        description="This is the last date from which the user can depart. If the user gives a month assume this is the last day of the month. If not year if given return 2023. In the format '%Y-%m-%d'",
+        description="This is the last date from which the user can depart. If the user gives a month assume this is the last day of the month. If year is not given assume 2024. In the format '%Y-%m-%d'",
     )
     max_budget: Optional[int] = Field(
         0,
