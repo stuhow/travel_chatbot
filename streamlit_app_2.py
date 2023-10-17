@@ -89,11 +89,11 @@ def main():
     if "openai_model" not in st.session_state:
         st.session_state["openai_model"] = "gpt-3.5-turbo"
 
-    # tools
+    # set tools as session state - work to be done
     if "tools" not in st.session_state:
         st.session_state["tools"] = get_tools()
 
-    # user_travel_details
+    # user_travel_details as session state
     if "user_travel_details" not in st.session_state:
         st.session_state["user_travel_details"] = TravelDetails(introduction=False,
                                                                     qualification="",
@@ -105,15 +105,15 @@ def main():
                                                                     min_duration=None,
                                                                     )
 
-    # list_of_interests
+    # list_of_interests as session state
     if "list_of_interests" not in st.session_state:
         st.session_state.list_of_interests = []
 
-    # interest_asked
+    # interest_asked as session state
     if "interest_asked" not in st.session_state:
         st.session_state.interest_asked = []
 
-    # asked_for
+    # asked_for as session state
     if "asked_for" not in st.session_state:
         st.session_state.asked_for = []
 
@@ -154,7 +154,7 @@ def main():
                                                         conversation,
                                                         st.session_state["user_travel_details"],
                                                         st.session_state.list_of_interests,
-                                                        st.session_state.asked_for,
+                                                        st.session_state.interest_asked,
                                                         st.session_state["tools"],
                                                         st.session_state.asked_for)
 

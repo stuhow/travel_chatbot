@@ -12,7 +12,8 @@ llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
 
 # map prompt
 def map_prompt(interests):
-    interests = ", ".join(interests)
+    valid_interests = [interest for interest in interests if interest is not None]
+    interests = ", ".join(valid_interests)
 
     intermediate_template = f"""Based on this list of docs, please identify the itinerary name, tour length, travel style, physical grading, an summary of the itinerary and this list of interests: {interests}.
     If one or more of the interests is not mentioned this include this in the answer.
@@ -38,7 +39,8 @@ def first_reduce_prompt():
 
 # second reduce prompt
 def second_reduce_prompt(interests):
-    interests = ", ".join(interests)
+    valid_interests = [interest for interest in interests if interest is not None]
+    interests = ", ".join(valid_interests)
 
     intermediate_template = f"""Take these and rank them based on the following user interests: {interests}.
     Return the origional summary along with a reason for ranking each itinerary based on their interests.

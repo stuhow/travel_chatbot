@@ -4,7 +4,8 @@ from pydantic import BaseModel, Field
 class UserInterests(BaseModel):
     interest: Optional[str] = Field(
         None,
-        description="Any experiances, interests, places or activities the user has expressed an interest in. This does not include dates, countries or tour types. Leave blank if none are mentioned",
+        description="""Any experiances, interests, places or activities the user has expressed an interest in.
+        Do not include a Months, Country name or tour types. Leave blank if none are mentioned""",
     )
 
 
@@ -21,7 +22,7 @@ class TravelDetails(BaseModel):
     country: Optional[str] = Field(
         "",
         description="This is the name of the country the user is wanting to visit. If they name a place within a country always return the country",
-        enum=["Cambodia", "Vietnam", "Morocco", "USA"]
+        enum=["Cambodia", "Vietnam", "Morocco", "USA", "Mexico"]
     )
 
     departing_after: Optional[str] = Field(

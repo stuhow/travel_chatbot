@@ -40,7 +40,7 @@ def check_conversation_stage(conversation_history_list,
     # extract intrests chain
     chain = create_tagging_chain_pydantic(UserInterests, llm)
     interest = chain.run(conversation_history_list[-1])
-    if interest.dict()['interest'] != None:
+    if interest.dict()['interest'] != None or interest.dict()['interest'] != "":
         list_of_interests.append(interest.dict()['interest'])
 
     # and remove country from the list
@@ -53,7 +53,7 @@ def check_conversation_stage(conversation_history_list,
     # Filter df and gather available itineraries
     filtered_df = get_filtered_df(df, new_user_travel_details)
     found_itineraries = filtered_df['tour_name'].unique()
-
+    print(len(filtered_df))
 
     # if there are no itineraries that fit the users needs we need to tell them
     if len(filtered_df) == 0:
