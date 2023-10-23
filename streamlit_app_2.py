@@ -122,7 +122,7 @@ def main():
         st.session_state.messages = []
 
     with st.container():
-        st.title("Francis TravelGPT Bot")
+        st.title("Francis: The Travel Agent Bot")
         stick_it_good()
 
 
@@ -137,7 +137,7 @@ def main():
     # first message from francis to iniciate conversation
     if len(st.session_state.messages) == 0:
         nkey = int(len(st.session_state.messages)/2)
-        opening_content = "Hello, this is Francis from Francis Travel. Can i help you find a group tour today?"
+        opening_content = "Hello, this is Francis your personal travel chat bot. How can i help you today?"
         streamlit_chat.message(opening_content,key='chat_messages_user_'+str(nkey))
         st.session_state.messages.append({"role": "assistant", "content": opening_content})
 
@@ -164,12 +164,14 @@ def main():
             st.session_state.messages.append({"role": "assistant", "content": assistant_content})
 
     # create sidebar for intro text and the open to clear chat history
-    st.sidebar.write('Welcome to my travl chat bot')
+    st.sidebar.write("Welcome to Francis, your personal travel chat bot.")
+    st.sidebar.write("Francis is here to have a conversation with you, understanding your basic travel needs such as your destination and budget. Additionally, he'll inquire about your interests to provide you with tailored group tour recommendations.")
+    st.sidebar.write("If you have any issues or want to start again you can clear the conversation with the button below.")
 
-    st.sidebar.write(st.session_state["user_travel_details"].dict())
-    st.sidebar.write(st.session_state.list_of_interests)
-    st.sidebar.write(st.session_state.interest_asked)
-    st.sidebar.write(st.session_state.asked_for)
+    # st.sidebar.write(st.session_state["user_travel_details"].dict())
+    # st.sidebar.write(st.session_state.list_of_interests)
+    # st.sidebar.write(st.session_state.interest_asked)
+    # st.sidebar.write(st.session_state.asked_for)
 
     if st.sidebar.button("Clear Conversation", key='clear_chat_button'):
         st.session_state.messages = []

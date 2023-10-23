@@ -1,6 +1,7 @@
 from travel_chatbot.basemodels import TravelDetails
 from travel_chatbot.dicts import ask_for_dict
 import pandas as pd
+from google.cloud import bigquery
 
 #check what is empty
 # ask for country and then for a budget
@@ -98,3 +99,41 @@ def conversation_history(messages):
             # Append the modified assistant message to conversation_history
             conversation_history.append('Francis: ' + message['content'])
     return conversation_history
+
+
+def big_query_filter(user_travel_details: TravelDetails):
+
+    PROJECT = "wagon-bootcamp-377120"
+    DATASET = "g_adventures_dataset"
+    TABLE = "one_month"
+
+    query = f"SELECT DISTINCT tour_name FROM {PROJECT}.{DATASET}.{TABLE} WHERE 1 = 1"
+
+    # Iterate through the provided filter criteria and add them to the query
+    if user_travel_details.country:
+        query += f" AND visited_countries LIKE '%{user_travel_details.country}%'"
+
+    if user_travel_details.max_budget:
+        query += f" AND Standard___Adult <= {user_travel_details.max_budget}"
+
+    # if user_travel_details.min_budget:
+    #     query += f" AND Standard___Adult >= {user_travel_details.min_budget}"
+
+    if user_travel_details.departing_after:
+        query += f" AND start_date >= '{user_travel_details.departing_after}'"
+
+    if user_travel_details.departing_before:
+        query += f" AND start_date <= '{user_travel_details.departing_before}'"
+
+    if user_travel_details.max_duration:
+        query += f" AND duration <= {user_travel_details.max_duration}"
+
+    if user_travel_details.min_duration:
+        query += f" AND duration >= {user_travel_details.min_duration}"
+
+    client = bigquery.Client(project=PROJECT)
+    query_job = client.query(query)
+    result = query_job.result()
+    df = result.to_dataframe()
+
+    return list(df["tour_name"])
