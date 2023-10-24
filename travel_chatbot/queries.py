@@ -20,6 +20,32 @@ def list_column_names():
 
     return filtered_categories
 
+def bq_single_itinerary_query(found_itineraries):
+    BASE_QUERY = f"""
+        SELECT
+        MAX(tour_operator) AS tour_operator,
+        tour_name,
+        itinerary_name,
+        MAX(visited_countries) AS visited_countries,
+        MAX(currency) AS currency,
+        ARRAY_AGG(DISTINCT Standard___Adult) AS Costs,
+        MAX(duration) AS duration,
+        ARRAY_AGG(CAST(start_date AS STRING) ORDER BY start_date) AS start_dates,
+        MAX(Travel_Style) AS Travel_Style,
+        MAX(Service_Level) AS Service_Level,
+        MAX(Physical_Grading) AS Physical_Grading,
+        MAX(Merchandising) AS Merchandising,
+        MAX(Trip_Type) AS Trip_Type,
+        MAX(itinerary) AS itinerary,
+        MAX(url) AS url
+        FROM
+        {PROJECT}.{DATASET}.{TABLE}
+        WHERE
+        tour_name = '{found_itineraries[0]}'
+        GROUP BY
+        tour_name, itinerary_name;
+        """
+    return BASE_QUERY
 
 def bq_filter_query(user_travel_details):
 
