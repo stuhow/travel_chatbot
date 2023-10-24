@@ -116,9 +116,6 @@ def big_query_filter(user_travel_details: TravelDetails):
     if user_travel_details.max_budget:
         query += f" AND Standard___Adult <= {user_travel_details.max_budget}"
 
-    # if user_travel_details.min_budget:
-    #     query += f" AND Standard___Adult >= {user_travel_details.min_budget}"
-
     if user_travel_details.departing_after:
         query += f" AND start_date >= '{user_travel_details.departing_after}'"
 
