@@ -168,14 +168,14 @@ def main():
     st.sidebar.write("Francis is here to have a conversation with you, understanding your basic travel needs such as your destination and budget. Additionally, he'll inquire about your interests to provide you with tailored group tour recommendations.")
     st.sidebar.write("If you have any issues or want to start again you can clear the conversation with the button below.")
 
-    # st.sidebar.write(st.session_state["user_travel_details"].dict())
-    # st.sidebar.write(st.session_state.list_of_interests)
-    # st.sidebar.write(st.session_state.interest_asked)
-    # st.sidebar.write(st.session_state.asked_for)
-
     if st.sidebar.button("Clear Conversation", key='clear_chat_button'):
         st.session_state.messages = []
         move_focus()
+
+    st.sidebar.write(st.session_state["user_travel_details"].dict())
+    st.sidebar.write(st.session_state.list_of_interests)
+    st.sidebar.write(st.session_state.interest_asked)
+    st.sidebar.write(st.session_state.asked_for)
 
 if __name__ == '__main__':
     main()

@@ -1,8 +1,10 @@
 from travel_chatbot.basemodels import TravelDetails
 from travel_chatbot.dicts import ask_for_dict
+from travel_chatbot.queries import bq_filter_query
 import pandas as pd
 from google.cloud import bigquery
 
+PROJECT = "wagon-bootcamp-377120"
 #check what is empty
 # ask for country and then for a budget
 def check_what_is_empty(user_travel_details):
@@ -38,6 +40,7 @@ def find_first_non_null(row):
     return None
 
 def get_filtered_df(df, user_travel_details):
+    # a function to get the filtered df from a local csv
     trip_details_dict = user_travel_details.dict()
     filled_out_dictionary = {k: v for k, v in user_travel_details.dict().items() if v not in [False, None, "",0]}
 
@@ -103,30 +106,7 @@ def conversation_history(messages):
 
 def big_query_filter(user_travel_details: TravelDetails):
 
-    PROJECT = "wagon-bootcamp-377120"
-    DATASET = "g_adventures_dataset"
-    TABLE = "one_month"
-
-    query = f"SELECT DISTINCT tour_name FROM {PROJECT}.{DATASET}.{TABLE} WHERE 1 = 1"
-
-    # Iterate through the provided filter criteria and add them to the query
-    if user_travel_details.country:
-        query += f" AND visited_countries LIKE '%{user_travel_details.country}%'"
-
-    if user_travel_details.max_budget:
-        query += f" AND Standard___Adult <= {user_travel_details.max_budget}"
-
-    if user_travel_details.departing_after:
-        query += f" AND start_date >= '{user_travel_details.departing_after}'"
-
-    if user_travel_details.departing_before:
-        query += f" AND start_date <= '{user_travel_details.departing_before}'"
-
-    if user_travel_details.max_duration:
-        query += f" AND duration <= {user_travel_details.max_duration}"
-
-    if user_travel_details.min_duration:
-        query += f" AND duration >= {user_travel_details.min_duration}"
+    query = bq_filter_query(user_travel_details)
 
     client = bigquery.Client(project=PROJECT)
     query_job = client.query(query)
