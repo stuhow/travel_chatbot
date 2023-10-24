@@ -7,7 +7,7 @@ from langchain.docstore.document import Document
 from langchain.agents import OpenAIFunctionsAgent
 from langchain.schema.messages import SystemMessage
 from langchain.chat_models import ChatOpenAI
-from travel_chatbot.queries import bq_single_itinerary
+from travel_chatbot.queries import bq_single_itinerary_query
 from langchain.document_loaders import BigQueryLoader
 
 llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
@@ -181,41 +181,45 @@ def single_solution_presentation_prompt(found_itineraries, interests):
 
     return conversation_stage
 
-# def bq_single_solution_presentation_prompt(found_itineraries, interests):
+def bq_single_solution_presentation_prompt(found_itineraries, interests, user_travel_details):
 
-#     interests_string = ", ".join(interests)
-#     # Define prompt
-#     prompt_template = """Write a summary and only include the itinerary name, tour length, a summary of departure dates, summary of costs, travel style, physical grading, a summary of the itinerary and present the url to the user.
-#     Include a mention of any potential interests: {interests_string}.
-#     "{text}"
-#     Produce a summary paragraph not a list or bullet points.
-#     CONCISE SUMMARY:"""
-#     prompt = PromptTemplate.from_template(prompt_template)
+    valid_interests = [interest for interest in interests if interest is not None]
+    interests_string = ", ".join(valid_interests)
 
-#     # Define LLM chain
-#     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo")
-#     llm_chain = LLMChain(llm=llm, prompt=prompt)
+    # Define prompt
+    prompt_template = f"""Write a summary and only include the itinerary name, tour length, a summary of departure dates, summary of costs, travel style, physical grading, a summary of the itinerary and present the url to the user.
+    Include a mention of any potential interests: {interests_string}.
+    """
+    prompt_template += """"
+    {text}"
+    Produce a summary paragraph not a list or bullet points.
+    CONCISE SUMMARY:"""
+    prompt = PromptTemplate.from_template(prompt_template)
 
-#     # Define StuffDocumentsChain
-#     stuff_chain = StuffDocumentsChain(
-#         llm_chain=llm_chain, document_variable_name="text"
-#     )
-#     query = bq_single_itinerary(found_itineraries[0])
+    # Define LLM chain
+    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo")
+    llm_chain = LLMChain(llm=llm, prompt=prompt)
 
-#     loader = BigQueryLoader(query)
-#     docs = loader.load()
-#     itinerary_summary = stuff_chain.run(docs)
+    # Define StuffDocumentsChain
+    stuff_chain = StuffDocumentsChain(
+        llm_chain=llm_chain, document_variable_name="text"
+    )
+    query = bq_single_itinerary_query(user_travel_details, found_itineraries)
 
-#     conversation_stage = f"""You are at the solution presentation stage of you conversation.
-#     You are in the process of gathering the basic information you need from the client along with their interests.
-#     Using this information you have gathered there is one itinery that fits the users needs.
-#     Present the summary, found between the two sets of == below, to the client.
-#     ==
-#     {itinerary_summary}
-#     ==
-#     """
+    loader = BigQueryLoader(query)
+    docs = loader.load()
+    itinerary_summary = stuff_chain.run(docs)
 
-#     return conversation_stage
+    conversation_stage = f"""You are at the solution presentation stage of you conversation.
+    You are in the process of gathering the basic information you need from the client along with their interests.
+    Using this information you have gathered there is one itinery that fits the users needs.
+    Present the summary, found between the two sets of == below, to the client.
+    ==
+    {itinerary_summary}
+    ==
+    """
+
+    return conversation_stage
 
 
 def solution_presentation_prompt(found_itineraries, interests):

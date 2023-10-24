@@ -26,7 +26,7 @@ def get_tools():
                     "path": file}
         files.append(file_dict)
 
-    for file in files[:10]:
+    for file in files[:1]:
         loader = TextLoader(file["path"])
         pages = loader.load_and_split()
         text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=50)

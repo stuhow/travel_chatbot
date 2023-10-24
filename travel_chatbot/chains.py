@@ -7,6 +7,7 @@ from travel_chatbot.prompts import (no_results_prompt,
                     introduction_prompt,
                     info_gathering_prompt,
                     single_solution_presentation_prompt,
+                    bq_single_solution_presentation_prompt,
                     solution_presentation_prompt,
                     qualifiaction_prompt)
 from travel_chatbot.utils import (add_non_empty_details,
@@ -107,7 +108,8 @@ def check_conversation_stage(conversation_history_list,
 
     # if there is only one itinerary
     if len(found_itineraries) == 1:
-        conversation_stage = single_solution_presentation_prompt(found_itineraries, list_of_interests)
+        print("Presenting the only itinerary found...")
+        conversation_stage = bq_single_solution_presentation_prompt(found_itineraries, list_of_interests, new_user_travel_details)
         return conversation_stage, new_user_travel_details
 
     # if we have all the validated details we need to ask for a clients interests
