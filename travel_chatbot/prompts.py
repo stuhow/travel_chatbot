@@ -7,7 +7,7 @@ from langchain.docstore.document import Document
 from langchain.agents import OpenAIFunctionsAgent
 from langchain.schema.messages import SystemMessage
 from langchain.chat_models import ChatOpenAI
-from travel_chatbot.queries import bq_single_itinerary_query
+from travel_chatbot.queries import bq_single_itinerary_query, bq_multiple_itinerary_query
 from langchain.document_loaders import BigQueryLoader
 
 llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
@@ -300,6 +300,87 @@ def solution_presentation_prompt(found_itineraries, interests):
 
     return conversation_stage
 
+def bq_solution_presentation_prompt(found_itineraries, interests, user_travel_details):
+
+    valid_interests = [interest for interest in interests if interest is not None]
+    interests = ", ".join(valid_interests)
+
+
+    map_prompt = f"""Write a summary and only include the itinerary name, tour length, a list of possible departure dates, summary of costs, travel style, physical grading, a summary of the itinerary and present the url to the user.
+    Include a mention of any potential interests: {interests}.
+    """
+    map_prompt += """"
+    {docs}"
+    Produce a summary paragraph not a list or bullet points.
+    CONCISE SUMMARY:"""
+    map_prompt = PromptTemplate.from_template(map_prompt)
+
+
+    reduce_template = """
+    You are an AI travel agent speaking to a user. The following is set of summaries that fits the users basic travel needs:
+    {doc_summaries}
+    """
+    intermediate_template = f"""Take these and rank them based on the following user interests: {interests}.
+    Return the ranked itineraries as a summary paragraph and only include the itinerary name, tour length, a list of possible departure dates, summary of costs, travel style, physical grading, a summary of the itinerary and present the url to the user.
+    Refer to the user as - you.
+    Helpful Answer:"""
+    reduce_template += intermediate_template
+
+    reduce_prompt = PromptTemplate.from_template(reduce_template)
+
+
+    # Map
+    map_chain = LLMChain(llm=llm, prompt=map_prompt)
+
+    # Run chain
+    reduce_chain = LLMChain(llm=llm, prompt=reduce_prompt)
+
+    # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
+    combine_documents_chain = StuffDocumentsChain(
+        llm_chain=reduce_chain, document_variable_name="doc_summaries"
+    )
+
+    # Combines and iteravely reduces the mapped documents
+    reduce_documents_chain = ReduceDocumentsChain(
+        # This is final chain that is called.
+        combine_documents_chain=combine_documents_chain,
+        # If documents exceed context for `StuffDocumentsChain`
+        collapse_documents_chain=combine_documents_chain,
+        # The maximum number of tokens to group documents into.
+        token_max=4000,
+    )
+
+    # Combining documents by mapping a chain over them, then combining results
+    map_reduce_chain = MapReduceDocumentsChain(
+        # Map chain
+        llm_chain=map_chain,
+        # Reduce chain
+        reduce_documents_chain=reduce_documents_chain, #_documents
+        # The variable name in the llm_chain to put the documents in
+        document_variable_name="docs",
+        # Return the results of the map steps in the output
+        return_intermediate_steps=False,
+    )
+
+
+    query = bq_multiple_itinerary_query(user_travel_details, found_itineraries)
+
+    loader = BigQueryLoader(query)
+    docs = loader.load()
+    itinerary_summary = map_reduce_chain.run(docs)
+
+    conversation_stage = f"""You are at the solution presentation stage of you conversation.
+    You have gathered the basic information you need from the client along with their interests.
+    Using this information you have found and ranked the itineraries that best fit the users needs.
+    Present the solution, found between the two sets of == below, to the client.
+    ==
+    {itinerary_summary}
+    ==
+
+    """
+    #Return each as a summary paragraph and only include the itinerary name, tour length, departure dates, summary of costs, travel style, physical grading, a summary of the itinerary and present the url to the user.
+
+    return conversation_stage
 
 
 def customize_prompt(conversation_history, conversation_stage):
@@ -307,6 +388,7 @@ def customize_prompt(conversation_history, conversation_stage):
     SALES_AGENT_TOOLS_PROMPT = """
     Never forget your name is Francis. You work as a Travel Agent.
     You work at company named Francis. Francis's business is the following: Francis is a context aware AI travel agent that works on finding users their dream group tour holiday.
+    You do not book the tour for the user. You present them with the options and a link to the tour website.
     You are contacting a potential prospect in order to find them a group toup holiday.
     Your means of contacting the prospect is live chat.
 
@@ -316,6 +398,7 @@ def customize_prompt(conversation_history, conversation_stage):
 
     - {conversation_stage}
 
+    If you are at the solution presentation stage do not ammend the text you are given.
     You MUST respond according to the previous conversation history and the stage of the conversation you are at.
     If you get asked about an itinerary use the tools available to you, do not make up an answer. If you do not know the answer tell the user.
     Only generate one response at a time and act as Francis only!

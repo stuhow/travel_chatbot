@@ -8,6 +8,7 @@ from travel_chatbot.prompts import (no_results_prompt,
                     info_gathering_prompt,
                     single_solution_presentation_prompt,
                     bq_single_solution_presentation_prompt,
+                    bq_solution_presentation_prompt,
                     solution_presentation_prompt,
                     qualifiaction_prompt)
 from travel_chatbot.utils import (add_non_empty_details,
@@ -123,7 +124,7 @@ def check_conversation_stage(conversation_history_list,
     elif len(ask_for) == 0 and len(found_itineraries) > 0:
         print("All details gathered! summarise the itineraries...")
         # conversation_stage = solution_presentation_prompt(found_itineraries, df) #
-        conversation_stage = solution_presentation_prompt(found_itineraries, list_of_interests)
+        conversation_stage = bq_solution_presentation_prompt(found_itineraries, list_of_interests, user_travel_details)
         return conversation_stage, new_user_travel_details
 
     # if the user has not been qualified

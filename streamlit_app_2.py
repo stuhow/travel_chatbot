@@ -149,7 +149,7 @@ def main():
             # assistant_content = complete_messages(0,1)
             conversation = conversation_history(st.session_state.messages)
 
-            with st.spinner(f"Thinking..."):
+            with st.spinner(f"Thinking... (If I'm thinking for a while it's usually because I'm about to present you with itinerary options)"):
                 assistant_content, user_details = run_francis(user_content,
                                                         conversation,
                                                         st.session_state["user_travel_details"],
@@ -170,12 +170,24 @@ def main():
 
     if st.sidebar.button("Clear Conversation", key='clear_chat_button'):
         st.session_state.messages = []
+        st.session_state["user_travel_details"] = TravelDetails(introduction=False,
+                                                                    qualification="",
+                                                                    country="",
+                                                                    departing_after=None,
+                                                                    departing_before=None,
+                                                                    max_budget=None,
+                                                                    max_duration=None,
+                                                                    min_duration=None,
+                                                                    )
+        st.session_state.list_of_interests = []
+        st.session_state.interest_asked = []
+        st.session_state.asked_for = []
         move_focus()
 
-    st.sidebar.write(st.session_state["user_travel_details"].dict())
-    st.sidebar.write(st.session_state.list_of_interests)
-    st.sidebar.write(st.session_state.interest_asked)
-    st.sidebar.write(st.session_state.asked_for)
+    # st.sidebar.write(st.session_state["user_travel_details"].dict())
+    # st.sidebar.write(st.session_state.list_of_interests)
+    # st.sidebar.write(st.session_state.interest_asked)
+    # st.sidebar.write(st.session_state.asked_for)
 
 if __name__ == '__main__':
     main()

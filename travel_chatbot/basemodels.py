@@ -22,7 +22,12 @@ class TravelDetails(BaseModel):
     country: Optional[str] = Field(
         "",
         description="This is the name of the country the user is wanting to visit. If they name a place within a country always return the country",
-        enum=["Cambodia", "Vietnam", "Morocco", "USA", "Mexico"]
+        enum=['Nicaragua', 'Jordan', 'New Zealand', 'Colombia', 'Maldives', 'Uzbekistan', 'Monaco', 'Italy', 'Austria', 'Iceland', 'Argentina', 'Oman',
+                'Malaysia', 'Poland', 'Bosnia and Herzegovina', 'Laos', 'Hungary', 'Zambia', 'Bhutan', 'United States', 'Turkey', 'Morocco', 'Montenegro',
+                'Serbia', 'Belgium', 'China', 'Peru', 'Israel', 'Egypt', 'Netherlands', 'Indonesia', 'Sri Lanka', 'Czech Republic',  'Honduras', 'Mexico',
+                'Madagascar', 'Greece', 'Cuba', 'Kenya', 'Turkmenistan', 'Belize', 'Portugal', 'Cambodia', 'Rwanda', 'Botswana', 'Spain', 'India', 'Switzerland',
+                'Australia', 'Uruguay', 'Uganda', 'Namibia', 'Croatia', 'France', 'South Korea', 'Brazil', 'Zimbabwe', 'Chile', 'Thailand', 'South Africa',
+                'El Salvador', 'Nepal', 'Japan', 'Guatemala', 'Bolivia', 'Slovenia', 'Germany', 'Ecuador', 'Singapore', 'Vietnam', 'Costa Rica', 'Tanzania', 'Malawi']
     )
 
     departing_after: Optional[str] = Field(
