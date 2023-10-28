@@ -98,24 +98,14 @@ def info_gathering_prompt(ask_for, found_itineraries, filtered_df):
 # Info gathering stage when there are still trip details to ask for
 def interest_gathering_prompt(found_itineraries, new_user_travel_details, list_of_interests):
     if len(list_of_interests) == 0:
-        PROMPT_TEMPLATE = f"""You have gathered all the basic information you need from the user:
-        - destination: {new_user_travel_details.dict()['country']}
-        - budget
-        - when they're looking to travel
-        - How long they want to travel for
-        You now need to learn more about the users interests to recommend to most suitable trip.
+        PROMPT_TEMPLATE = f"""You have gathered all the basic information you need from the user.
+        You now need to learn more about the users interests.
         Ask questions around why they want to visit {new_user_travel_details.dict()['country']}
         """
     else:
-        PROMPT_TEMPLATE = f"""You have gathered all the basic information you need from the user:
-        - destination: {new_user_travel_details.dict()['country']}
-        - budget
-        - when they're looking to travel
-        - How long they want to travel for
-        The following itineraries are available: {found_itineraries}
-        You now need to learn more about the users interests to recommend to most suitable trip.
-        This is a list of places & interests they have already expressed an interest in: {list_of_interests}
-        Ask questions around why they choose the destination
+        PROMPT_TEMPLATE = f"""You have gathered all the basic information you need from the user.
+        You now need to learn more about the users interests.
+        Ask questions around why they want to visit {new_user_travel_details.dict()['country']}
         """
     return PROMPT_TEMPLATE
 
@@ -398,9 +388,8 @@ def customize_prompt(conversation_history, conversation_stage):
 
     - {conversation_stage}
 
-    If you are at the solution presentation stage do not ammend the text you are given.
+    If you are asked to use a tool, ALWAYS use the tool and do not make up the answer!
     You MUST respond according to the previous conversation history and the stage of the conversation you are at.
-    If you get asked about an itinerary use the tools available to you, do not make up an answer. If you do not know the answer tell the user.
     Only generate one response at a time and act as Francis only!
     Do not add Francis: to your output.
 
@@ -409,7 +398,7 @@ def customize_prompt(conversation_history, conversation_stage):
 
     Begin!
     """
-
+    # If you get asked about an itinerary use the tools available to you, do not make up an answer. If you do not know the answer tell the user.
     conversation_history = "\n".join(conversation_history)
 
 

@@ -13,11 +13,12 @@ from langchain.prompts import PromptTemplate
 from langchain.chains.llm import LLMChain
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.document_loaders import BigQueryLoader
-from travel_chatbot.queries import bq_single_itinerary_query
+from travel_chatbot.queries import bq_single_itinerary_query, bq_multiple_itinerary_query
 from langchain.tools import StructuredTool
+from langchain.chains import ReduceDocumentsChain, MapReduceDocumentsChain
 
 def bq_single_solution_presentation_tool(found_itineraries, interests, user_travel_details):
-    print('Summaristion tool started')
+    print('Single Summaristion tool started')
 
     valid_interests = [interest for interest in interests if interest is not None]
     interests_string = ", ".join(valid_interests)
@@ -54,16 +55,106 @@ def bq_single_solution_presentation_tool(found_itineraries, interests, user_trav
     {itinerary_summary}
     ==
     """
-    print('Summaristion tool finished')
+    print('Single Summaristion tool finished')
     return conversation_stage
 
+def bq_solution_presentation_tool(found_itineraries, interests, user_travel_details):
+    print('Multiple Summaristion tool started')
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
+
+    valid_interests = [interest for interest in interests if interest is not None]
+    interests = ", ".join(valid_interests)
+
+
+    map_prompt = f"""Write a summary and only include the itinerary name, tour length, a list of possible departure dates, summary of costs, travel style, physical grading, a summary of the itinerary and present the url to the user.
+    Include a mention of any potential interests: {interests}.
+    """
+    map_prompt += """"
+    {docs}"
+    Produce a summary paragraph not a list or bullet points.
+    CONCISE SUMMARY:"""
+    map_prompt = PromptTemplate.from_template(map_prompt)
+
+
+    reduce_template = """
+    You are an AI travel agent speaking to a user. The following is set of summaries that fits the users basic travel needs:
+    {doc_summaries}
+    """
+    intermediate_template = f"""Take these and rank them based on the following user interests: {interests}.
+    Return the ranked itineraries as a summary paragraph and only include the itinerary name, tour length, a list of possible departure dates, summary of costs, travel style, physical grading, a summary of the itinerary and present the url to the user.
+    Refer to the user as - you.
+    Helpful Answer:"""
+    reduce_template += intermediate_template
+
+    reduce_prompt = PromptTemplate.from_template(reduce_template)
+
+
+    # Map
+    map_chain = LLMChain(llm=llm, prompt=map_prompt)
+
+    # Run chain
+    reduce_chain = LLMChain(llm=llm, prompt=reduce_prompt)
+
+    # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
+    combine_documents_chain = StuffDocumentsChain(
+        llm_chain=reduce_chain, document_variable_name="doc_summaries"
+    )
+
+    # Combines and iteravely reduces the mapped documents
+    reduce_documents_chain = ReduceDocumentsChain(
+        # This is final chain that is called.
+        combine_documents_chain=combine_documents_chain,
+        # If documents exceed context for `StuffDocumentsChain`
+        collapse_documents_chain=combine_documents_chain,
+        # The maximum number of tokens to group documents into.
+        token_max=4000,
+    )
+
+    # Combining documents by mapping a chain over them, then combining results
+    map_reduce_chain = MapReduceDocumentsChain(
+        # Map chain
+        llm_chain=map_chain,
+        # Reduce chain
+        reduce_documents_chain=reduce_documents_chain, #_documents
+        # The variable name in the llm_chain to put the documents in
+        document_variable_name="docs",
+        # Return the results of the map steps in the output
+        return_intermediate_steps=False,
+    )
+
+
+    query = bq_multiple_itinerary_query(user_travel_details, found_itineraries)
+
+    loader = BigQueryLoader(query)
+    docs = loader.load()
+    itinerary_summary = map_reduce_chain.run(docs)
+
+    conversation_stage = f"""You are at the solution presentation stage of you conversation.
+    You have gathered the basic information you need from the client along with their interests.
+    Using this information you have found and ranked the itineraries that best fit the users needs.
+    Present the solution, found between the two sets of == below, to the client.
+    ==
+    {itinerary_summary}
+    ==
+
+    """
+    #Return each as a summary paragraph and only include the itinerary name, tour length, departure dates, summary of costs, travel style, physical grading, a summary of the itinerary and present the url to the user.
+    print('Multiple Summaristion tool finished')
+    return conversation_stage
+
+
 def get_bq_tools(found_itineraries, interests, new_user_travel_details):
-    addition_tool = StructuredTool.from_function(
+    single_itinerary_summarisation_tool = StructuredTool.from_function(
         name="single_itinerary_summarisation",
-        description="use this tool when you need to summarise a single itinerary",
+        description="only use this tool when you need to summarise a single itinerary",
         func = lambda: bq_single_solution_presentation_tool(found_itineraries, interests, new_user_travel_details)
         )
-    return addition_tool
+    multiple_itinerary_summarisation_tool = StructuredTool.from_function(
+        name="multiple_itinerary_summarisation",
+        description="only use this tool when you need to summarise multiple itineraries",
+        func = lambda: bq_solution_presentation_tool(found_itineraries, interests, new_user_travel_details)
+        )
+    return [single_itinerary_summarisation_tool, multiple_itinerary_summarisation_tool]
 
 def get_tools():
     #tru start

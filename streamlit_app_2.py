@@ -184,10 +184,10 @@ def main():
         st.session_state.asked_for = []
         move_focus()
 
-    # st.sidebar.write(st.session_state["user_travel_details"].dict())
-    # st.sidebar.write(st.session_state.list_of_interests)
-    # st.sidebar.write(st.session_state.interest_asked)
-    # st.sidebar.write(st.session_state.asked_for)
+    st.sidebar.write(st.session_state["user_travel_details"].dict())
+    st.sidebar.write(st.session_state.list_of_interests)
+    st.sidebar.write(st.session_state.interest_asked)
+    st.sidebar.write(st.session_state.asked_for)
 
 if __name__ == '__main__':
     main()

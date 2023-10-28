@@ -187,7 +187,9 @@ def bq_check_conversation_stage(conversation_history_list,
     if len(found_itineraries) == 1:
         print("Presenting the only itinerary found...")
         # conversation_stage = bq_single_solution_presentation_prompt(found_itineraries, list_of_interests, new_user_travel_details)
-        conversation_stage = "You have found a single itinerary that matches the users needs. Use the single_itinerary_summarisation tool to present the itinerary to the user."
+        conversation_stage = """You have found a single itinerary that matches the users needs.
+        You MUST use the single_itinerary_summarisation tool to present the itinerary to the user.
+        Do not make up an itinerary, ALWAYS use the single_itinerary_summarisation tool."""
         return conversation_stage, new_user_travel_details, list_of_interests, found_itineraries
 
     # if we have all the validated details we need to ask for a clients interests
@@ -200,8 +202,10 @@ def bq_check_conversation_stage(conversation_history_list,
     # if we have all the validated details we need to present the list of itineraries rank by relevance to interests
     elif len(ask_for) == 0 and len(found_itineraries) > 0:
         print("All details gathered! summarise the itineraries...")
-        # conversation_stage = solution_presentation_prompt(found_itineraries, df) #
-        conversation_stage = bq_solution_presentation_prompt(found_itineraries, list_of_interests, user_travel_details)
+        # conversation_stage = bq_solution_presentation_prompt(found_itineraries, list_of_interests, user_travel_details)
+        conversation_stage = """You have found multiple itineraries that matche the users needs.
+        You MUST use the multiple_itinerary_summarisation tool to present the itinerary to the user.
+        Do not make up an itinerary, ALWAYS use the multiple_itinerary_summarisation tool."""
         return conversation_stage, new_user_travel_details, list_of_interests, found_itineraries
 
     # if the user has not been qualified

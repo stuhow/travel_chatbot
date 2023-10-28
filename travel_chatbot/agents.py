@@ -65,7 +65,7 @@ def bq_run_francis(input,
 
     final_prompt = customize_prompt(conversation_history, conversation_stage)
 
-    tools = [get_bq_tools(found_itineraries, new_list_of_interests, new_user_travel_details)]
+    tools = get_bq_tools(found_itineraries, new_list_of_interests, new_user_travel_details)
 
     # Create the agent
     agent = OpenAIFunctionsAgent(llm=llm,
