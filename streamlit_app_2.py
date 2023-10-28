@@ -2,7 +2,7 @@ import openai
 import streamlit as st
 import streamlit_chat
 
-from travel_chatbot.agents import run_francis
+from travel_chatbot.agents import run_francis, bq_run_francis
 from travel_chatbot.tools import get_tools
 from travel_chatbot.basemodels import TravelDetails
 from travel_chatbot.utils import conversation_history
@@ -150,7 +150,7 @@ def main():
             conversation = conversation_history(st.session_state.messages)
 
             with st.spinner(f"Thinking... (If I'm thinking for a while it's usually because I'm about to present you with itinerary options)"):
-                assistant_content, user_details = run_francis(user_content,
+                assistant_content, user_details = bq_run_francis(user_content,
                                                         conversation,
                                                         st.session_state["user_travel_details"],
                                                         st.session_state.list_of_interests,
