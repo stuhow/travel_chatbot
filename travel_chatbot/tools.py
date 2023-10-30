@@ -16,6 +16,12 @@ from langchain.document_loaders import BigQueryLoader
 from travel_chatbot.queries import bq_single_itinerary_query, bq_multiple_itinerary_query
 from langchain.tools import StructuredTool
 from langchain.chains import ReduceDocumentsChain, MapReduceDocumentsChain
+import pinecone
+from langchain.vectorstores import Pinecone
+import os
+from langchain.agents.agent_toolkits import create_retriever_tool
+from langchain.tools import BaseTool
+from typing import Type
 
 def bq_single_solution_presentation_tool(found_itineraries, interests, user_travel_details):
     print('Single Summaristion tool started')
@@ -142,6 +148,65 @@ def bq_solution_presentation_tool(found_itineraries, interests, user_travel_deta
     print('Multiple Summaristion tool finished')
     return conversation_stage
 
+def itinerary_name():
+    pinecone.init(api_key=os.getenv('PINECONE_API_KEY'),
+              environment=os.getenv('PINECONE_ENV'))
+
+    embeddings = OpenAIEmbeddings()
+    pinecone_index = pinecone.Index("chatbot")
+    vectorstore = Pinecone(pinecone_index, embeddings, "text")
+    filters = {"tour_name": "Complete list of tours"}
+    retriever = vectorstore.as_retriever(search_kwargs={'filter': filters})
+
+    retriever_tool = create_retriever_tool(
+            retriever,
+            name='itinerary_name_search',
+            description='use to learn the correct spelling of an itinerary name'
+        )
+    return retriever_tool
+
+def question_function(att: str, question: str):
+
+    embeddings = OpenAIEmbeddings()
+
+    pinecone_index = pinecone.Index("chatbot")
+    vectorstore = Pinecone(pinecone_index, embeddings.embed_query, "text")
+
+    filters = {"tour_name": att}
+
+    qa = RetrievalQA.from_chain_type(
+        llm= ChatOpenAI(
+                        model_name='gpt-3.5-turbo',
+                        temperature=0.0
+                    ),
+        chain_type="stuff",
+        retriever=vectorstore.as_retriever(search_kwargs={'filter': filters})
+    )
+
+    response = qa.run(question)
+    return response
+
+
+class Itineraryname(BaseModel):
+    """Inputs for my_profile function"""
+    itinerary_name: str = Field(description="the correct spelling of an itinerary name")
+    question: str = Field(description="the question to be passed to the model")
+
+class ItineraryQuestions(BaseTool):
+    name = "itinerary_question"
+    description = """
+        Needed when you want to ask a question about an itinerary.
+        Use this tool once you have used the retriever_tool to get the correct name
+        """
+    args_schema: Type[BaseModel] = Itineraryname
+
+    def _run(self, itinerary_name: str, question: str):
+        profile_detail_attribute = question_function(itinerary_name, question)
+        return profile_detail_attribute
+
+    def _arun(self, itinerary_name: str):
+        raise NotImplementedError(
+            "itinerary_question does not support async calls")
 
 def get_bq_tools(found_itineraries, interests, new_user_travel_details):
     single_itinerary_summarisation_tool = StructuredTool.from_function(
@@ -154,7 +219,11 @@ def get_bq_tools(found_itineraries, interests, new_user_travel_details):
         description="only use this tool when you need to summarise multiple itineraries",
         func = lambda: bq_solution_presentation_tool(found_itineraries, interests, new_user_travel_details)
         )
-    return [single_itinerary_summarisation_tool, multiple_itinerary_summarisation_tool]
+    return [single_itinerary_summarisation_tool,
+            multiple_itinerary_summarisation_tool,
+            itinerary_name(),
+            ItineraryQuestions()
+            ]
 
 def get_tools():
     #tru start

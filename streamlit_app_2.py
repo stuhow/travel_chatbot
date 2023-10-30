@@ -113,6 +113,10 @@ def main():
     if "interest_asked" not in st.session_state:
         st.session_state.interest_asked = []
 
+    # solution_presented as session state
+    if "solution_presented" not in st.session_state:
+        st.session_state.solution_presented = []
+
     # asked_for as session state
     if "asked_for" not in st.session_state:
         st.session_state.asked_for = []
