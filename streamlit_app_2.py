@@ -160,8 +160,9 @@ def main():
                                                         st.session_state.list_of_interests,
                                                         st.session_state.interest_asked,
                                                         st.session_state["tools"],
-                                                        st.session_state.asked_for)
-
+                                                        st.session_state.asked_for,
+                                                        st.session_state.solution_presented)
+            # print(user_details)
             st.session_state["user_travel_details"] = user_details
 
             streamlit_chat.message(assistant_content, key='chat_messages_assistant_'+str(nkey))
@@ -192,6 +193,7 @@ def main():
     st.sidebar.write(st.session_state.list_of_interests)
     st.sidebar.write(st.session_state.interest_asked)
     st.sidebar.write(st.session_state.asked_for)
+    st.sidebar.write(st.session_state.solution_presented)
 
 if __name__ == '__main__':
     main()

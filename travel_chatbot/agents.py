@@ -53,7 +53,8 @@ def bq_run_francis(input,
                 list_of_interests,
                 interest_asked,
                 tools,
-                asked_for):
+                asked_for,
+                solution_presented):
 
     llm = ChatOpenAI(temperature=0.9, model="gpt-3.5-turbo")
 
@@ -61,12 +62,15 @@ def bq_run_francis(input,
                                                                        user_travel_details,
                                                                        list_of_interests,
                                                                        interest_asked,
-                                                                       asked_for)
+                                                                       asked_for,
+                                                                       solution_presented)
 
     final_prompt = customize_prompt(conversation_history, conversation_stage)
-
+    print(final_prompt)
+    print("gathering tools")
     tools = get_bq_tools(found_itineraries, new_list_of_interests, new_user_travel_details)
 
+    print("running agent")
     # Create the agent
     agent = OpenAIFunctionsAgent(llm=llm,
                                  tools=tools,
@@ -81,4 +85,4 @@ def bq_run_francis(input,
 
     francis = agent_executor.run(input)
 
-    return francis, user_travel_details
+    return francis, new_user_travel_details

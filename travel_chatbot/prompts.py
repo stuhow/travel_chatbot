@@ -79,6 +79,7 @@ def qualifiaction_prompt(new_user_travel_details):
 
 # Info gathering stage when there are still trip details to ask for
 def info_gathering_prompt(ask_for, found_itineraries, filtered_df):
+    print(ask_for[0])
     if len(ask_for) == 6:
         PROMPT_TEMPLATE = f"""You are currently in the detail gathering phase of the conversation and are trying to get detail of the users trip to help find the the perfect trip.
             If the user has just asked a follow up question in the conversation history, answer it.

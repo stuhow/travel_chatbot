@@ -143,12 +143,14 @@ def bq_check_conversation_stage(conversation_history_list,
                              user_travel_details,
                              list_of_interests,
                              interest_asked,
-                             asked_for):
+                             asked_for,
+                             solution_presented):
 
 
     conversation_history = "\n".join(conversation_history_list)
 
     # extract travel details chain
+    print("starting to gather TravelDetails")
     chain = create_tagging_chain_pydantic(TravelDetails, llm)
     res = chain.run(conversation_history)
     new_user_travel_details = add_non_empty_details(user_travel_details, res)
@@ -164,8 +166,10 @@ def bq_check_conversation_stage(conversation_history_list,
     ask_for = check_what_is_empty(new_user_travel_details)
 
     # extract intrests chain
+    print("starting to gather UserInterests")
     chain = create_tagging_chain_pydantic(UserInterests, llm)
     interest = chain.run(conversation_history_list[-1])
+    print("interest chain run")
     if interest.dict()['interest'] != None or interest.dict()['interest'] != "":
         list_of_interests.append(interest.dict()['interest'])
 
@@ -174,13 +178,25 @@ def bq_check_conversation_stage(conversation_history_list,
         list_of_interests.remove(new_user_travel_details.dict()['country'])
 
     # Filtered available itineraries
+    print("starting to look for bq itineraries")
     found_itineraries = big_query_filter(new_user_travel_details)
     filtered_df = None
+    print(new_user_travel_details)
+    print(found_itineraries)
+
 
     # if there are no itineraries that fit the users needs we need to tell them
     if len(found_itineraries) == 0:
         print('No itineraries match the user needs....')
         conversation_stage = no_results_prompt(user_travel_details, new_user_travel_details)
+        return conversation_stage, new_user_travel_details, list_of_interests, found_itineraries
+
+    if len(solution_presented) > 0:
+        print('Solutions presented answer questions...')
+        conversation_stage = """You have presented the potential itineraries to the user.
+        If are being asked a question about an itinerary.
+        The first thing you need to do is to get the correct itinerary name using the itinerary_name_search tool.
+        Only once you hvae the correct itinerary name, use the itinerary_question tool to answer the question."""
         return conversation_stage, new_user_travel_details, list_of_interests, found_itineraries
 
     # if there is only one itinerary
@@ -190,6 +206,7 @@ def bq_check_conversation_stage(conversation_history_list,
         conversation_stage = """You have found a single itinerary that matches the users needs.
         You MUST use the single_itinerary_summarisation tool to present the itinerary to the user.
         Do not make up an itinerary, ALWAYS use the single_itinerary_summarisation tool."""
+        solution_presented.append(1)
         return conversation_stage, new_user_travel_details, list_of_interests, found_itineraries
 
     # if we have all the validated details we need to ask for a clients interests
@@ -206,6 +223,7 @@ def bq_check_conversation_stage(conversation_history_list,
         conversation_stage = """You have found multiple itineraries that matche the users needs.
         You MUST use the multiple_itinerary_summarisation tool to present the itinerary to the user.
         Do not make up an itinerary, ALWAYS use the multiple_itinerary_summarisation tool."""
+        solution_presented.append(1)
         return conversation_stage, new_user_travel_details, list_of_interests, found_itineraries
 
     # if the user has not been qualified

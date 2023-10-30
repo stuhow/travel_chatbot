@@ -113,4 +113,4 @@ def big_query_filter(user_travel_details: TravelDetails):
     result = query_job.result()
     df = result.to_dataframe()
 
-    return list(df["tour_name"])
+    return list(df["tour_name"].unique())
