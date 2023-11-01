@@ -81,7 +81,8 @@ def bq_run_francis(input,
     agent_executor = AgentExecutor(agent=agent,
                                    tools=tools,
                                    verbose=False,
-                                   max_iterations=5)
+                                   max_iterations=5,
+                                   early_stopping_method="generate")
 
     francis = agent_executor.run(input)
 

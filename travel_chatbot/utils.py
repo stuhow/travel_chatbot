@@ -11,7 +11,7 @@ def check_what_is_empty(user_travel_details):
     ask_for = []
     # Check if fields are empty
     for field, value in user_travel_details.dict().items():
-        if value in [None, "", 0]:  # You can add other 'empty' conditions as per your requirements
+        if value in [None, "", 0] and field != 'qualification':  # You can add other 'empty' conditions as per your requirements
             ask_for.append(ask_for_dict[field])
 
     if 'what country are you looking to travel to?' in ask_for:

@@ -72,12 +72,12 @@ def bq_solution_presentation_tool(found_itineraries, interests, user_travel_deta
     interests = ", ".join(valid_interests)
 
 
-    map_prompt = f"""Write a summary and only include the itinerary name, tour length, a list of possible departure dates, summary of costs, travel style, physical grading, a summary of the itinerary and present the url to the user.
+    map_prompt = f"""Write a summary paragraph and only include the itinerary name, tour length, a list of possible departure dates, summary of costs, travel style, physical grading, a summary of the itinerary and present the url to the user.
     Include a mention of any potential interests: {interests}.
     """
     map_prompt += """"
     {docs}"
-    Produce a summary paragraph not a list or bullet points.
+    Produce a summary paragraph. Do not product a list or bullet points.
     CONCISE SUMMARY:"""
     map_prompt = PromptTemplate.from_template(map_prompt)
 
@@ -88,6 +88,7 @@ def bq_solution_presentation_tool(found_itineraries, interests, user_travel_deta
     """
     intermediate_template = f"""Take these and rank them based on the following user interests: {interests}.
     Return the ranked itineraries as a summary paragraph and only include the itinerary name, tour length, a list of possible departure dates, summary of costs, travel style, physical grading, a summary of the itinerary and present the url to the user.
+    Only return each itinerary as a consise paragraph.
     Refer to the user as - you.
     Helpful Answer:"""
     reduce_template += intermediate_template
@@ -166,7 +167,7 @@ def itinerary_name():
     return retriever_tool
 
 def question_function(att: str, question: str):
-
+    print("Question tool started...")
     embeddings = OpenAIEmbeddings()
 
     pinecone_index = pinecone.Index("chatbot")
@@ -184,6 +185,7 @@ def question_function(att: str, question: str):
     )
 
     response = qa.run(question)
+    print("Question tool completed...")
     return response
 
 

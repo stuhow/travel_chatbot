@@ -149,10 +149,12 @@ def bq_check_conversation_stage(conversation_history_list,
 
     conversation_history = "\n".join(conversation_history_list)
 
+    last_two_interactions = "\n".join(conversation_history_list[-2:])
+
     # extract travel details chain
     print("starting to gather TravelDetails")
     chain = create_tagging_chain_pydantic(TravelDetails, llm)
-    res = chain.run(conversation_history)
+    res = chain.run(last_two_interactions)
     new_user_travel_details = add_non_empty_details(user_travel_details, res)
 
     found_itineraries =None
@@ -168,7 +170,7 @@ def bq_check_conversation_stage(conversation_history_list,
     # extract intrests chain
     print("starting to gather UserInterests")
     chain = create_tagging_chain_pydantic(UserInterests, llm)
-    interest = chain.run(conversation_history_list[-1])
+    interest = chain.run(last_two_interactions)
     print("interest chain run")
     if interest.dict()['interest'] != None or interest.dict()['interest'] != "":
         list_of_interests.append(interest.dict()['interest'])
@@ -210,14 +212,14 @@ def bq_check_conversation_stage(conversation_history_list,
         return conversation_stage, new_user_travel_details, list_of_interests, found_itineraries
 
     # if we have all the validated details we need to ask for a clients interests
-    elif len(ask_for) == 0 and len(found_itineraries) > 0 and len(interest_asked) == 0:
+    elif len(ask_for) == 0 and len(interest_asked) == 0: #and len(found_itineraries) > 0
         print("All details gathered! Ask about interests...")
         conversation_stage = interest_gathering_prompt(found_itineraries, new_user_travel_details, list_of_interests)
         interest_asked.append(1)
         return conversation_stage, new_user_travel_details, list_of_interests, found_itineraries
 
     # if we have all the validated details we need to present the list of itineraries rank by relevance to interests
-    elif len(ask_for) == 0 and len(found_itineraries) > 0:
+    elif len(ask_for) == 0 and len(interest_asked) > 0: #and len(found_itineraries) > 0
         print("All details gathered! summarise the itineraries...")
         # conversation_stage = bq_solution_presentation_prompt(found_itineraries, list_of_interests, user_travel_details)
         conversation_stage = """You have found multiple itineraries that matche the users needs.

@@ -1,6 +1,7 @@
 import openai
 import streamlit as st
 import streamlit_chat
+import time
 
 from travel_chatbot.agents import run_francis, bq_run_francis
 from travel_chatbot.tools import get_tools
@@ -152,7 +153,6 @@ def main():
             st.session_state.messages.append({"role": "user", "content": user_content})
             # assistant_content = complete_messages(0,1)
             conversation = conversation_history(st.session_state.messages)
-
             with st.spinner(f"Thinking... (If I'm thinking for a while it's usually because I'm about to present you with itinerary options)"):
                 assistant_content, user_details = bq_run_francis(user_content,
                                                         conversation,
