@@ -1,14 +1,24 @@
 import openai
 import streamlit as st
-import streamlit_chat
-import time
+import os
 
 from travel_chatbot.agents import run_francis, bq_run_francis
 from travel_chatbot.tools import get_tools
 from travel_chatbot.basemodels import TravelDetails
 from travel_chatbot.utils import conversation_history
+from langchain.callbacks.manager  import collect_runs
+
+from langsmith import Client
+
+from streamlit_feedback import streamlit_feedback
+
+client = Client()
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
+os.environ["LANGCHAIN_TRACING_V2"] = os.getenv("LANGCHAIN_TRACING_V2")
+os.environ["LANGCHAIN_ENDPOINT"] = os.getenv("LANGCHAIN_ENDPOINT")
+os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
+os.environ["LANGCHAIN_PROJECT"] = os.getenv("LANGCHAIN_PROJECT")
 
 def move_focus():
     # inspect the html to determine which control to specify to receive focus (e.g. text or textarea).
@@ -91,7 +101,6 @@ def main():
         st.title("Francis: The Travel Agent Bot")
         stick_it_good()
 
-
     # first message from francis to iniciate conversation
     if len(st.session_state.messages) == 0:
         st.session_state.messages.append({"role": "assistant", "content": "Hello, this is Francis your personal travel chat bot. How can i help you today?"})
@@ -106,24 +115,68 @@ def main():
             st.session_state.messages.append({"role": "user", "content": user_content})
             with st.chat_message("user"):
                 st.markdown(user_content)
-
-        # Generate a new response if last message is not from assistant
+    run_id = None
+    # Generate a new response if last message is not from assistant
     if st.session_state.messages[-1]["role"] != "assistant":
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
-                conversation = conversation_history(st.session_state.messages)
-                assistant_content, user_details = bq_run_francis(user_content,
-                                        conversation,
-                                        st.session_state["user_travel_details"],
-                                        st.session_state.list_of_interests,
-                                        st.session_state.interest_asked,
-                                        st.session_state["tools"],
-                                        st.session_state.asked_for,
-                                        st.session_state.solution_presented)
-                st.write(assistant_content)
+                with collect_runs() as cb:
+                    conversation = conversation_history(st.session_state.messages)
+                    assistant_content, user_details = bq_run_francis(user_content,
+                                            conversation,
+                                            st.session_state["user_travel_details"],
+                                            st.session_state.list_of_interests,
+                                            st.session_state.interest_asked,
+                                            st.session_state["tools"],
+                                            st.session_state.asked_for,
+                                            st.session_state.solution_presented)
+                    st.write(assistant_content)
+                    run_id = cb.traced_runs[0].id
         message = {"role": "assistant", "content": assistant_content}
         st.session_state.messages.append(message)
         st.session_state["user_travel_details"] = user_details
+
+    if run_id:
+        feedback_option = "thumbs"
+        feedback = streamlit_feedback(
+            feedback_type=feedback_option,
+            optional_text_label="[Optional] Please provide an explanation",
+            key=f"feedback_{run_id}",
+        )
+
+        # Define score mappings for both "thumbs" and "faces" feedback systems
+        score_mappings = {
+            "thumbs": {"👍": 1, "👎": 0},
+            "faces": {"😀": 1, "🙂": 0.75, "😐": 0.5, "🙁": 0.25, "😞": 0},
+        }
+
+        # Get the score mapping based on the selected feedback option
+        scores = score_mappings[feedback_option]
+
+        if feedback:
+            # Get the score from the selected feedback option's score mapping
+            score = scores.get(feedback["score"])
+
+            if score is not None:
+                # Formulate feedback type string incorporating the feedback option
+                # and score value
+                feedback_type_str = f"{feedback_option} {feedback['score']}"
+
+                # Record the feedback with the formulated feedback type string
+                # and optional comment
+                feedback_record = client.create_feedback(
+                    run_id,
+                    feedback_type_str,
+                    score=score,
+                    comment=feedback.get("text"),
+                )
+                st.session_state.feedback = {
+                    "feedback_id": str(feedback_record.id),
+                    "score": score,
+                }
+            else:
+                st.warning("Invalid feedback score.")
+
 
     # create sidebar for intro text and the open to clear chat history
     st.sidebar.write("Welcome to Francis, your personal travel chat bot.")
@@ -146,11 +199,11 @@ def main():
         st.session_state.asked_for = []
         move_focus()
 
-    st.sidebar.write(st.session_state["user_travel_details"].dict())
-    st.sidebar.write(st.session_state.list_of_interests)
-    st.sidebar.write(st.session_state.interest_asked)
-    st.sidebar.write(st.session_state.asked_for)
-    st.sidebar.write(st.session_state.solution_presented)
+    # st.sidebar.write(st.session_state["user_travel_details"].dict())
+    # st.sidebar.write(st.session_state.list_of_interests)
+    # st.sidebar.write(st.session_state.interest_asked)
+    # st.sidebar.write(st.session_state.asked_for)
+    # st.sidebar.write(st.session_state.solution_presented)
 
 if __name__ == '__main__':
     main()
