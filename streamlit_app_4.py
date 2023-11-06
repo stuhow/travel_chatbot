@@ -1,8 +1,9 @@
 import openai
 import streamlit as st
 import os
+import uuid
 
-from travel_chatbot.agents import run_francis, bq_run_francis
+from travel_chatbot.agents import run_francis, bq_run_francis, bq_run_francis_2
 from travel_chatbot.tools import get_tools
 from travel_chatbot.basemodels import TravelDetails
 from travel_chatbot.utils import conversation_history
@@ -34,7 +35,6 @@ def move_focus():
         """,
     )
 
-
 def stick_it_good():
 
     # make header sticky.
@@ -55,7 +55,6 @@ def stick_it_good():
         """,
         unsafe_allow_html=True
     )
-
 
 def main():
     # set model as session state
@@ -121,21 +120,25 @@ def main():
     if st.session_state.messages[-1]["role"] != "assistant":
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
-                with collect_runs() as cb:
+                run_id = uuid.uuid4()
+                with trace_as_chain_group("travel_bot_run", run_id=run_id, inputs={"input": user_content}) as manager:
                     conversation = conversation_history(st.session_state.messages)
-                    assistant_content, user_details = bq_run_francis(user_content,
+                    francis, user_details = bq_run_francis_2(user_content,
                                             conversation,
                                             st.session_state["user_travel_details"],
                                             st.session_state.list_of_interests,
                                             st.session_state.interest_asked,
                                             st.session_state["tools"],
                                             st.session_state.asked_for,
-                                            st.session_state.solution_presented)
-                    st.write(assistant_content)
-                    print(len(cb.traced_runs))
-                    run_id = cb.traced_runs[-1].id
+                                            st.session_state.solution_presented,
+                                            manager)# here
+                    # assistant_content = francis.invoke({'input': input}, config={"callbacks": manager})
+                    # manager.on_chain_end({"output": assistant_content})
+                    st.write(francis['output'])
+                    # print(len(cb.traced_runs))
+                    # run_id = cb.traced_runs[-1].id
                     st.session_state.run_id = run_id
-        message = {"role": "assistant", "content": assistant_content}
+        message = {"role": "assistant", "content": francis['output']}
         st.session_state.messages.append(message)
         st.session_state["user_travel_details"] = user_details
 

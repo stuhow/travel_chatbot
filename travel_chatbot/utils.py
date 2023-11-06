@@ -26,7 +26,12 @@ def check_what_is_empty(user_travel_details):
 
 ## checking the response and adding it
 def add_non_empty_details(current_details: TravelDetails, new_details: TravelDetails):
-    non_empty_details = {k: v for k, v in new_details.dict().items() if v not in [False, None, ""]}
+    non_empty_details = {k: v for k, v in new_details.dict().items() if v not in [False, None, ""]} # new_details.dict()
+    updated_details = current_details.copy(update=non_empty_details)
+    return updated_details
+
+def add_non_empty_details_2(current_details: TravelDetails, new_details: TravelDetails):
+    non_empty_details = {k: v for k, v in new_details.items() if v not in [False, None, ""]} # new_details.dict()
     updated_details = current_details.copy(update=non_empty_details)
     return updated_details
 
