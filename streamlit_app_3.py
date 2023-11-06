@@ -6,7 +6,8 @@ from travel_chatbot.agents import run_francis, bq_run_francis
 from travel_chatbot.tools import get_tools
 from travel_chatbot.basemodels import TravelDetails
 from travel_chatbot.utils import conversation_history
-from langchain.callbacks.manager  import collect_runs
+from langchain.callbacks.manager  import collect_runs, trace_as_chain_group
+from travel_chatbot.utils import submit_feedback
 
 from langsmith import Client
 
@@ -19,6 +20,8 @@ os.environ["LANGCHAIN_TRACING_V2"] = os.getenv("LANGCHAIN_TRACING_V2")
 os.environ["LANGCHAIN_ENDPOINT"] = os.getenv("LANGCHAIN_ENDPOINT")
 os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
 os.environ["LANGCHAIN_PROJECT"] = os.getenv("LANGCHAIN_PROJECT")
+
+
 
 def move_focus():
     # inspect the html to determine which control to specify to receive focus (e.g. text or textarea).
@@ -131,17 +134,19 @@ def main():
                                             st.session_state.asked_for,
                                             st.session_state.solution_presented)
                     st.write(assistant_content)
-                    run_id = cb.traced_runs[0].id
+                    print(len(cb.traced_runs))
+                    run_id = cb.traced_runs[-1].id
+                    st.session_state.run_id = run_id
         message = {"role": "assistant", "content": assistant_content}
         st.session_state.messages.append(message)
         st.session_state["user_travel_details"] = user_details
 
-    if run_id:
-        feedback_option = "thumbs"
+    feedback_option = 'thumbs'
+    if st.session_state.get("run_id"):
         feedback = streamlit_feedback(
-            feedback_type=feedback_option,
-            optional_text_label="[Optional] Please provide an explanation",
-            key=f"feedback_{run_id}",
+            feedback_type=feedback_option,  # Use the selected feedback option
+            optional_text_label="[Optional] Please provide an explanation",  # Adding a label for optional text input
+            key=f"feedback_{st.session_state.run_id}",
         )
 
         # Define score mappings for both "thumbs" and "faces" feedback systems
@@ -158,15 +163,13 @@ def main():
             score = scores.get(feedback["score"])
 
             if score is not None:
-                # Formulate feedback type string incorporating the feedback option
-                # and score value
+                # Formulate feedback type string incorporating the feedback option and score value
                 feedback_type_str = f"{feedback_option} {feedback['score']}"
 
-                # Record the feedback with the formulated feedback type string
-                # and optional comment
+                # Record the feedback with the formulated feedback type string and optional comment
                 feedback_record = client.create_feedback(
-                    run_id,
-                    feedback_type_str,
+                    st.session_state.run_id,
+                    feedback_type_str,  # Updated feedback type
                     score=score,
                     comment=feedback.get("text"),
                 )
@@ -176,7 +179,6 @@ def main():
                 }
             else:
                 st.warning("Invalid feedback score.")
-
 
     # create sidebar for intro text and the open to clear chat history
     st.sidebar.write("Welcome to Francis, your personal travel chat bot.")
@@ -199,11 +201,11 @@ def main():
         st.session_state.asked_for = []
         move_focus()
 
-    # st.sidebar.write(st.session_state["user_travel_details"].dict())
-    # st.sidebar.write(st.session_state.list_of_interests)
-    # st.sidebar.write(st.session_state.interest_asked)
-    # st.sidebar.write(st.session_state.asked_for)
-    # st.sidebar.write(st.session_state.solution_presented)
+    st.sidebar.write(st.session_state["user_travel_details"].dict())
+    st.sidebar.write(st.session_state.list_of_interests)
+    st.sidebar.write(st.session_state.interest_asked)
+    st.sidebar.write(st.session_state.asked_for)
+    st.sidebar.write(st.session_state.solution_presented)
 
 if __name__ == '__main__':
     main()

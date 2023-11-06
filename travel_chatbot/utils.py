@@ -114,3 +114,30 @@ def big_query_filter(user_travel_details: TravelDetails):
     df = result.to_dataframe()
 
     return list(df["tour_name"].unique())
+
+
+def submit_feedback(feedback, client, run_id):
+    feedback_option = "thumbs"
+
+    # Define score mappings for both "thumbs" and "faces" feedback systems
+    score_mappings = {
+        "thumbs": {"👍": 1, "👎": 0},
+        "faces": {"😀": 1, "🙂": 0.75, "😐": 0.5, "🙁": 0.25, "😞": 0},
+    }
+
+    # Get the score mapping based on the selected feedback option
+    scores = score_mappings[feedback_option]
+    score = scores.get(feedback["score"])
+
+
+    feedback_type_str = "some feedback"
+
+    feedback_type_str = f"{feedback_option} {feedback['score']}"
+
+    score = score
+    client.create_feedback(
+                    run_id=run_id,
+                    key=feedback_type_str,
+                    score=score,
+                    comment=feedback.get("text")
+    )
